@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+from os import chdir as cd, listdir as ls, getcwd as pwd
+from subprocess import run, getoutput
+from sys import argv
+from configparser import ConfigParser
+
+config = ConfigParser()
+config.read('/home/roshan/repos/web_of_notes/config.ini')
+
+latex_dir = config['config']['latex_dir']
+pdf_dir = config['config']['pdf_dir']
+raw_dir = config['config']['raw_dir']
+tags_dir = config['config']['tags_dir']
+
+tex_files = argv[1:]
+
+assert len(tex_files) >= 1
+
+if latex_dir not in pwd():
+    print(latex_dir)
+    print(pwd())
+    print("Run the program from some subdirectory of the latex directory")
+    exit()
+
+for tex_file in tex_files:
+    tex_file_location = getoutput(f'dirname $(readlink -e {tex_file})')
+    cd(tex_file_location)
+
+    run(['pdflatex', tex_file], timeout=30)
+
+    if tex_file[-4:] == ".tex":
+        pdf_file = tex_file[-4:] + ".pdf"
+    else:
+        pdf_file = tex_file + ".pdf"
+
+print("Updating tags...")
+run(["/home/roshan/repos/web_of_notes/update_tags", *tex_files])
+print("Done!")
